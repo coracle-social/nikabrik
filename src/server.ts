@@ -3,6 +3,14 @@ import 'dotenv/config'
 import {DVM} from './dvm';
 import countHandlers from './handlers/count';
 
+process
+  .on('unhandledRejection', (reason, p) => {
+    console.error(reason, 'Unhandled Rejection at Promise', p);
+  })
+  .on('uncaughtException', err => {
+    console.error(err, 'Uncaught Exception thrown');
+  });
+
 const sk = process.env.NIKABRIK_SK as string
 const relays = process.env.NIKABRIK_RELAYS as string
 

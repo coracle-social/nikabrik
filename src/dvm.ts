@@ -81,7 +81,7 @@ export class DVM {
       event.tags.push(['e', e.id]);
 
       if (process.env.NIKABRIK_ENABLE_LOGGING) {
-        console.info("Publishing event", e)
+        console.info("Publishing event", event)
       }
 
       this.publish(event);
