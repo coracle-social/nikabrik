@@ -3,7 +3,7 @@ import {getSignature, getPublicKey, getEventHash} from 'nostr-tools';
 import {now, Subscription, Pool, Relays, Executor} from 'paravel';
 import {getInputTag} from './util';
 
-export type DVMHandler = (this: DVM, e: Event) => AsyncGenerator<EventTemplate>;
+export type DVMHandler = (dvm: DVM, e: Event) => AsyncGenerator<EventTemplate>;
 
 export type DVMOpts = {
   sk: string;
@@ -67,7 +67,11 @@ export class DVM {
 
     this.seen.add(e.id);
 
-    for await (const event of handler.call(this, e)) {
+    if (process.env.NIKABRIK_ENABLE_LOGGING) {
+      console.info("Handling request", e)
+    }
+
+    for await (const event of handler(this, e)) {
       if (event.kind !== 7000) {
         event.tags.push(['request', JSON.stringify(e)]);
         event.tags.push(getInputTag(e)!);
@@ -75,6 +79,10 @@ export class DVM {
 
       event.tags.push(['p', e.pubkey]);
       event.tags.push(['e', e.id]);
+
+      if (process.env.NIKABRIK_ENABLE_LOGGING) {
+        console.info("Publishing event", e)
+      }
 
       this.publish(event);
     }
