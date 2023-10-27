@@ -1,2 +1,2 @@
 export * from './dvm';
-export {handleCountRequest, default as countHandlers} from './handlers/count';
+export {handleCount, default as countHandlers} from './handlers/count';
