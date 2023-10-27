@@ -7,13 +7,24 @@ import {getInputParams, getInputValue} from '../util';
 type CountWithProgressOpts = {
   dvm: DVM
   event: Event
-  kind: number
   filters: Filter[]
   init: (sub: Subscription) => void
   getResult: () => string
 }
 
-async function* countWithProgress({dvm, event, kind, filters, init, getResult}: CountWithProgressOpts) {
+const getGroupKey = (group: string, e: Event) => {
+  if (['content', 'pubkey'].includes(group)) {
+    return (e as any)[group]
+  }
+
+  if (group.match(/^created_at\/\d+$/)) {
+    return Math.floor(e.created_at / parseInt(group.split('/').slice(-1)[0]))
+  }
+
+  return e.tags.find(t => t[0] === group)?.[1] || ""
+}
+
+async function* countWithProgress({dvm, event, filters, init, getResult}: CountWithProgressOpts) {
   const sub = new Subscription({
     filters,
     timeout: 30000,
@@ -35,42 +46,44 @@ async function* countWithProgress({dvm, event, kind, filters, init, getResult}: 
     yield createEvent(7000, {content: getResult()});
   }
 
-  yield createEvent(kind, {content: getResult()});
+  yield createEvent(event.kind + 1000, {content: getResult()});
 }
 
 export async function* handleCount(dvm: DVM, event: Event) {
-  let count = 0
+  const groups = getInputParams(event, 'group')
+
+  let result = groups.length > 0 ? {} : 0
 
   yield* countWithProgress({
     dvm,
     event,
-    kind: 6400,
     filters: JSON.parse(getInputValue(event)),
-    getResult: () => count.toString(),
-    init: (sub: Subscription) => {
-      sub.on('event', (e: Event) => {
-        count += 1
-      })
-    },
-  })
-}
-
-export async function* handleCountReactions(dvm: DVM, event: Event) {
-  const result: Record<string, number> = {}
-
-  yield* countWithProgress({
-    dvm,
-    event,
-    kind: 6401,
-    filters: [{kinds: [7], '#e': [getInputValue(event)]}],
     getResult: () => JSON.stringify(result),
     init: (sub: Subscription) => {
       sub.on('event', (e: Event) => {
-        const emojiTag = e.tags.find(t => t[0] === 'emoji')
-        const value = emojiTag ? emojiTag[2] : e.content
+        if (groups.length === 0) {
+          (result as number)++
+        } else {
+          let data: any = result
 
-        result[value] = result[value] || 0
-        result[value] += 1
+          groups.forEach((group, i) => {
+            const key = getGroupKey(group, e)
+
+            if (i < groups.length - 1) {
+              if (!data[key]) {
+                data[key] = {}
+              }
+
+              data = data[key]
+            } else {
+              if (!data[key]) {
+                data[key] = 0
+              }
+
+              data[key] += 1
+            }
+          })
+        }
       })
     },
   })
@@ -78,6 +91,4 @@ export async function* handleCountReactions(dvm: DVM, event: Event) {
 
 export default {
   '5400': handleCount,
-  '5401': handleCountReactions,
-  '5402': handleCountFollowers,
 };
