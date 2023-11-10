@@ -7,4 +7,4 @@ export const getInputValue = (e: Event) => getInputTag(e)![1];
 export const getInputParams = (e: Event, k: string) =>
   e.tags.filter(t => t[0] === 'param' && t[1] === k).map(t => t[2]);
 
-export const getInputParam = (e: Event, k: string) => getInputParams(e, k)[0]
+export const getInputParam = (e: Event, k: string) => getInputParams(e, k)[0];

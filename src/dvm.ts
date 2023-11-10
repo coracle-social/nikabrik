@@ -46,10 +46,10 @@ export class DVM {
           timeout: 30_000,
           executor: this.getExecutor(relays),
           filters: [{kinds, since: now() - 30}],
-        })
+        });
 
-        sub.on('event', e => this.onEvent(e))
-        sub.on('close', () => resolve())
+        sub.on('event', e => this.onEvent(e));
+        sub.on('close', () => resolve());
       });
     }
   }
@@ -68,7 +68,7 @@ export class DVM {
     this.seen.add(e.id);
 
     if (process.env.NIKABRIK_ENABLE_LOGGING) {
-      console.info("Handling request", e)
+      console.info('Handling request', e);
     }
 
     for await (const event of handler(this, e)) {
@@ -81,7 +81,7 @@ export class DVM {
       event.tags.push(['e', e.id]);
 
       if (process.env.NIKABRIK_ENABLE_LOGGING) {
-        console.info("Publishing event", event)
+        console.info('Publishing event', event);
       }
 
       this.publish(event);
