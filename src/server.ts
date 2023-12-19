@@ -1,7 +1,8 @@
 import 'dotenv/config';
 
 import {DVM} from './dvm';
-import countHandlers from './handlers/count';
+import countAgents from './agents/count';
+import searchAgents from './agents/search';
 
 process
   .on('unhandledRejection', (reason, p) => {
@@ -17,13 +18,14 @@ const relays = process.env.NIKABRIK_RELAYS as string;
 export const dvm = new DVM({
   sk,
   relays: relays.split(','),
-  handlers: {
-    ...countHandlers,
+  agents: {
+    ...countAgents,
+    ...searchAgents,
   },
 });
 
 if (process.env.NIKABRIK_ENABLE_LOGGING) {
   console.info(
-    `Started dvm with ${Object.keys(dvm.opts.handlers).length} handlers`
+    `Started dvm with ${Object.keys(dvm.opts.agents).length} agents`
   );
 }

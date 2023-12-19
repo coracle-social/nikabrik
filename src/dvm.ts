@@ -3,20 +3,27 @@ import {getSignature, getPublicKey, getEventHash} from 'nostr-tools';
 import {now, Subscription, Pool, Relays, Executor} from 'paravel';
 import {getInputTag} from './util';
 
-export type DVMHandler = (dvm: DVM, e: Event) => AsyncGenerator<EventTemplate>;
+export type DVMAgent = {
+  stop?: () => void;
+  handleEvent: (e: Event) => AsyncGenerator<EventTemplate>;
+};
+
+export type CreateDVMAgent = (dvm: DVM) => DVMAgent;
 
 export type DVMOpts = {
   sk: string;
   relays: string[];
-  handlers: Record<string, DVMHandler>;
+  agents: Record<string, CreateDVMAgent>;
 };
 
 export class DVM {
   seen = new Set();
   pool = new Pool();
+  agents = new Map();
   stopped = false;
 
   constructor(readonly opts: DVMOpts) {
+    this.init();
     this.listen();
   }
 
@@ -34,18 +41,21 @@ export class DVM {
     );
   }
 
-  async listen() {
-    const {handlers, relays} = this.opts;
-    const kinds = Array.from(Object.keys(handlers)).map(k => parseInt(k));
+  init() {
+    for (const [kind, createAgent] of Object.entries(this.opts.agents)) {
+      this.agents.set(parseInt(kind), createAgent(this));
+    }
+  }
 
+  async listen() {
     this.stopped = false;
 
     while (!this.stopped) {
       await new Promise<void>(resolve => {
         const sub = new Subscription({
           timeout: 30_000,
-          executor: this.getExecutor(relays),
-          filters: [{kinds, since: now() - 30}],
+          executor: this.getExecutor(this.opts.relays),
+          filters: [{kinds: Array.from(this.agents.keys()), since: now()}],
         });
 
         sub.on('event', e => this.onEvent(e));
@@ -59,9 +69,11 @@ export class DVM {
       return;
     }
 
-    const handler = this.opts.handlers[e.kind];
+    const agent = this.agents.get(e.kind);
 
-    if (!handler) {
+    console.log(e, agent, this.agents);
+
+    if (!agent) {
       return;
     }
 
@@ -71,7 +83,7 @@ export class DVM {
       console.info('Handling request', e);
     }
 
-    for await (const event of handler(this, e)) {
+    for await (const event of agent.handleEvent(e)) {
       if (event.kind !== 7000) {
         event.tags.push(['request', JSON.stringify(e)]);
         event.tags.push(getInputTag(e)!);
@@ -112,6 +124,10 @@ export class DVM {
   }
 
   stop() {
+    for (const agent of this.agents.values()) {
+      agent.stop?.();
+    }
+
     this.pool.clear();
     this.stopped = true;
   }

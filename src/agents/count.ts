@@ -77,46 +77,48 @@ async function* countWithProgress({
   });
 }
 
-export async function* handleCount(dvm: DVM, event: Event) {
-  const groups = getInputParams(event, 'group');
+export const configureCountAgent = () => (dvm: DVM) => ({
+  handleEvent: async function* (event: Event) {
+    const groups = getInputParams(event, 'group');
 
-  const result = groups.length > 0 ? {} : 0;
+    const result = groups.length > 0 ? {} : 0;
 
-  yield* countWithProgress({
-    dvm,
-    event,
-    filters: JSON.parse(getInputValue(event)),
-    getResult: () => JSON.stringify(result),
-    init: (sub: Subscription) => {
-      sub.on('event', (e: Event) => {
-        if (groups.length === 0) {
-          (result as number)++;
-        } else {
-          let data: any = result;
+    yield* countWithProgress({
+      dvm,
+      event,
+      filters: JSON.parse(getInputValue(event)),
+      getResult: () => JSON.stringify(result),
+      init: (sub: Subscription) => {
+        sub.on('event', (e: Event) => {
+          if (groups.length === 0) {
+            (result as number)++;
+          } else {
+            let data: any = result;
 
-          groups.forEach((group, i) => {
-            const key = getGroupKey(group, e);
+            groups.forEach((group, i) => {
+              const key = getGroupKey(group, e);
 
-            if (i < groups.length - 1) {
-              if (!data[key]) {
-                data[key] = {};
+              if (i < groups.length - 1) {
+                if (!data[key]) {
+                  data[key] = {};
+                }
+
+                data = data[key];
+              } else {
+                if (!data[key]) {
+                  data[key] = 0;
+                }
+
+                data[key] += 1;
               }
-
-              data = data[key];
-            } else {
-              if (!data[key]) {
-                data[key] = 0;
-              }
-
-              data[key] += 1;
-            }
-          });
-        }
-      });
-    },
-  });
-}
+            });
+          }
+        });
+      },
+    });
+  },
+});
 
 export default {
-  '5400': handleCount,
+  '5400': configureCountAgent(),
 };

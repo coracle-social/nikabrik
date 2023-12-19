@@ -1,2 +1,3 @@
 export * from './dvm';
-export {handleCount, default as countHandlers} from './handlers/count';
+export {configureCountAgent, default as countAgents} from './agents/count';
+export {configureSearchAgent, default as searchAgents} from './agents/search';

@@ -1,6 +1,6 @@
 {
   "name": "nikabrik",
-  "version": "0.0.2",
+  "version": "0.0.4",
   "description": "A utility for building DVMs",
   "author": "hodlbod",
   "license": "MIT",
@@ -20,19 +20,24 @@
     },
     "./types": "./build/src/index.d.ts"
   },
+  "files": [
+    "build"
+  ],
   "scripts": {
-    "pub": "npm i && npm run lint && tsc-multi && npm publish",
+    "pub": "pnpm i && pnpm run lint && tsc-multi && pnpm publish",
     "build": "tsc-multi",
     "clean": "gts clean",
     "lint": "gts lint",
     "fix": "gts fix",
-    "prepare": "yarn run build",
-    "pretest": "yarn run build",
-    "posttest": "yarn run lint"
+    "prepare": "pnpm build",
+    "pretest": "pnpm build",
+    "posttest": "pnpm lint"
   },
   "dependencies": {
     "dotenv": "^16.3.1",
+    "fuse.js": "^7.0.0",
     "hurdak": "^0.2.6",
+    "navigatr": "^0.0.3",
     "nostr-tools": "^1.15.0",
     "paravel": "^0.4.1"
   },
